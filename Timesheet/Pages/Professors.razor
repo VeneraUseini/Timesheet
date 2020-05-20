@@ -1,0 +1,158 @@
+﻿@page "/professors"
+
+@using Timesheet.Model
+@inject Timesheet.Data.ProfessorService professorService
+
+<h1>Professors</h1>
+
+<p>This component demonstrates managing professors data</p>
+
+@if (professors == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <button @onclick="@Add" class="btn btn-success">Add</button>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Faculty</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in professors)
+            {
+            <tr @onclick="@(() => Show(item.ProfessorId))">
+                <td>@item.ProfessorId</td>
+                <td>@item.FirstName</td>
+                <td>@item.LastName</td>
+                <td>@item.Faculty</td>
+                <td>@item.Email</td>
+            </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (professors != null && mode == MODE.Add) //insert
+{
+    <input placeholder="First Name" @bind="@firstName" />
+    <br />
+    <input placeholder="Last Name" @bind="@lastName" />
+    <br />
+    <input placeholder="Faculty" @bind="@faculty" />
+    <br />
+    <input placeholder="Email" @bind="@email" />
+    <br />
+    <button @onclick="@Insert" class="btn btn-warning">Insert</button>
+}
+
+@if (professors != null && mode == MODE.EditDelete) // Update & Delete form
+{
+    <input type="hidden" @bind="@professorId" />
+    <br />
+    <input placeholder="First Name" @bind="@firstName" />
+    <br />
+    <input placeholder="Last Name" @bind="@lastName" />
+    <br />
+    <input placeholder="Faculty" @bind="@faculty" />
+    <br />
+    <input placeholder="Email" @bind="@email" />
+    <br />
+    <button @onclick="@Update" class="btn btn-primary">Update</button>
+    <span>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+    <button @onclick="@Delete" class="btn btn-danger">Delete</button>
+}
+
+@functions {
+    List<Professor> professors;
+
+    string professorId;
+    string firstName;
+    string lastName;
+    string faculty;
+    string email;
+    private enum MODE { None, Add, EditDelete };
+    MODE mode = MODE.None;
+    Professor professor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await load();
+    }
+    protected async Task load()
+    {
+        professors = await professorService.GetProfessorsAsync();
+    }
+
+    protected void ClearFields()
+    {
+        professorId = string.Empty;
+        firstName = string.Empty;
+        lastName = string.Empty;
+        faculty = string.Empty;
+        email = string.Empty;
+    }
+
+    protected async Task Insert()
+    {
+        Professor p = new Professor()
+        {
+            ProfessorId = Guid.NewGuid().ToString(),
+            FirstName = firstName,
+            LastName = lastName,
+            Faculty = faculty,
+            Email = email
+        };
+
+        await professorService.InsertProfessorAsync(p);
+        ClearFields();
+        await load();
+    }
+
+    protected void Add()
+    {
+        ClearFields();
+        mode = MODE.Add;
+    }
+
+    protected async Task Update()
+    {
+        Professor p = new Professor()
+        {
+            ProfessorId = professorId,
+            FirstName = firstName,
+            LastName = lastName,
+            Faculty = faculty,
+            Email = email
+        };
+        await professorService.UpdateProfessorAsync(professorId, p);
+        ClearFields();
+        await load();
+        mode = MODE.None;
+    }
+
+    protected async Task Delete()
+    {
+        await professorService.DeleteProfessorAsync(professorId);
+        ClearFields();
+        await load();
+        mode = MODE.None;
+    }
+
+    protected async Task Show(string id)
+    {
+        professor = await professorService.GetProfessorByIdAsync(id);
+        professorId = professor.ProfessorId;
+        firstName = professor.FirstName;
+        lastName = professor.LastName;
+        faculty = professor.Faculty;
+        email = professor.Email;
+        mode = MODE.EditDelete;
+    }
+}
